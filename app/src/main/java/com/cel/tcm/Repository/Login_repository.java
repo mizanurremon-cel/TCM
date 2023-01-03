@@ -36,24 +36,24 @@ public class Login_repository {
             datas = new MutableLiveData<>();
         }
 
-        Call<Login_response> call = apiService.userLogin(appID, userName, password);
-        call.enqueue(new Callback<Login_response>() {
-            @Override
-            public void onResponse(Call<Login_response> call, Response<Login_response> response) {
-                if (response.isSuccessful()) {
-                    Log.d("dataxx", response.body().toString());
-                    datas.postValue(response.body());
-                }
-            }
-
-            @Override
-            public void onFailure(Call<Login_response> call, Throwable t) {
-                Log.d("dataxx", "error "+t.getMessage());
-                Login_response response = new Login_response();
-                //response.id = -1;
-                datas.postValue(response);
-            }
-        });
+//        Call<Login_response> call = apiService.userLogin(appID, userName, password);
+//        call.enqueue(new Callback<Login_response>() {
+//            @Override
+//            public void onResponse(Call<Login_response> call, Response<Login_response> response) {
+//                if (response.isSuccessful()) {
+//                    Log.d("dataxx", response.body().toString());
+//                    datas.postValue(response.body());
+//                }
+//            }
+//
+//            @Override
+//            public void onFailure(Call<Login_response> call, Throwable t) {
+//                Log.d("dataxx", "error "+t.getMessage());
+//                Login_response response = new Login_response();
+//                //response.id = -1;
+//                datas.postValue(response);
+//            }
+//        });
 
         return datas;
     }

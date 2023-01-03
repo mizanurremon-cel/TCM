@@ -13,6 +13,7 @@ import android.widget.Toast;
 
 import com.cel.tcm.API.APIUtilize;
 import com.cel.tcm.API.ApiService;
+import com.cel.tcm.Model.LoginPost;
 import com.cel.tcm.Model.Login_response;
 import com.cel.tcm.Utils.Constants;
 import com.cel.tcm.Utils.CryptUtil;
@@ -22,6 +23,7 @@ import com.cel.tcm.databinding.ActivityLoginBinding;
 
 import java.util.Locale;
 
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -87,14 +89,18 @@ public class Login_activity extends AppCompatActivity implements View.OnClickLis
                         }
                     });*/
 
-
+                    LoginPost loginPost= new LoginPost();
+                    loginPost.setAppId(Constants.APP_ID);
+                    loginPost.setLoginId(userName);
+                    loginPost.setPassword(password);
                     ApiService apiService = APIUtilize.apiService();
-                    apiService.userLogin(Constants.APP_ID, userName, password).enqueue(new Callback<Login_response>() {
+                    apiService.userLogin(loginPost).enqueue(new Callback<Login_response>() {
                         @Override
                         public void onResponse(Call<Login_response> call, Response<Login_response> response) {
-                            if (response.isSuccessful()) {
-                                Toast.makeText(Login_activity.this, String.valueOf(response.body().id), Toast.LENGTH_SHORT).show();
-                            }
+                            Log.d("sdfghj", "onResponse: "+response.body().authenticationToken);
+//                            if (response.isSuccessful()) {
+//                                Toast.makeText(Login_activity.this, String.valueOf(response.body().id), Toast.LENGTH_SHORT).show();
+//                            }
                         }
 
                         @Override
