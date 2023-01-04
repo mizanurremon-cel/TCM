@@ -8,8 +8,10 @@ public class SessionManager {
     SharedPreferences.Editor editor;
 
     String SHARED_PREF_NAME = "session";
-    String SESSION_TOKEN = "TCM_TOKEN";
+    String SESSION_USER_ID = "TCM_USER_ID";
     String SESSION_LANGUAGE = "TCM_LANGUAGE";
+    String SESSION_USER_TYPE = "TCM_USER_TYPE";
+    String SESSION_TOKEN = "TCM_TOKEN";
 
 
     public SessionManager(Context context) {
@@ -27,6 +29,31 @@ public class SessionManager {
     }
 
 
+    public void saveUserID(String token) {
+        editor.putString(SESSION_USER_ID, token);
+        editor.commit();
+    }
+
+
+    public String getUserID() {
+        return sharedPreferences.getString(SESSION_USER_ID, "-1");
+    }
+
+    public void removeUserID() {
+        editor.putString(SESSION_USER_ID, "-1").commit();
+    }
+
+
+    public void saveUserType(String token) {
+        editor.putString(SESSION_USER_TYPE, token);
+        editor.commit();
+    }
+
+
+    public String getUserType() {
+        return sharedPreferences.getString(SESSION_USER_TYPE, "-1");
+    }
+
     public void saveToken(String token) {
         editor.putString(SESSION_TOKEN, token);
         editor.commit();
@@ -35,10 +62,6 @@ public class SessionManager {
 
     public String getToken() {
         return sharedPreferences.getString(SESSION_TOKEN, "-1");
-    }
-
-    public void removeToken() {
-        editor.putString(SESSION_TOKEN, "-1").commit();
     }
 
     /*public void saveQuestionList(List<Subjective_exam_category_response.Question> questionList, String key) {
