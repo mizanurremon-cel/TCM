@@ -12,4 +12,6 @@
     <string name="login_failed">"Login failed"</string>
     <string name="sign_in">Sign In</string>
     <string name="username">Username</string>
+    <string name="prompt_permission_storage">You need to allow access SD card.</string>
+    <string name="action_settings">Settings</string>
 </resources>

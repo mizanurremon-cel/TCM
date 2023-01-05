@@ -8,7 +8,9 @@ import com.cel.tcm.Model.OutletsResponse;
 import com.cel.tcm.Model.POSMAssetResponse;
 import com.cel.tcm.Model.RoutesResponse;
 import com.cel.tcm.Model.SalesPointsResponse;
+import com.cel.tcm.Model.SaveCoolerInfoResponse;
 
+import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
@@ -17,6 +19,7 @@ import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.Headers;
+import retrofit2.http.Multipart;
 import retrofit2.http.POST;
 import retrofit2.http.Query;
 
@@ -56,4 +59,8 @@ public interface ApiService {
     @GET("coolerRegistration/getPosmAsset")
     Call<POSMAssetResponse> getPOSMAsset(@Header("Authorization") String authHeader,
                                          @Query("posmAssetId") String posmAssetId);
+
+
+    @POST("coolerRegistration/saveCoolerInformation")
+    Call<SaveCoolerInfoResponse> saveCoolerInformation(@Header("Authorization")String token,@Body RequestBody file);
 }
