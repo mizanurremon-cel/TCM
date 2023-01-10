@@ -43,7 +43,7 @@ public class Item_alert_adapter extends RecyclerView.Adapter<Item_alert_adapter.
 
     @Override
     public void onBindViewHolder(@NonNull Item_alert_adapter.ViewHolder holder, int position) {
-        String code = "", name = "";
+        String code = "", name = "", phone = "";
         if (type.equals(Constants.SALES)) {
             List<SalesPointsResponse.Value> responses = salesPointsList;
             code = responses.get(position).salesPointCode.toString();
@@ -56,6 +56,7 @@ public class Item_alert_adapter extends RecyclerView.Adapter<Item_alert_adapter.
             List<OutletsResponse.Value> responses = outletsList;
             code = responses.get(position).code.toString();
             name = responses.get(position).name.toString();
+            phone = responses.get(position).contactNo.toString();
         } else if (type.equals(Constants.BRAND)) {
             List<CoolerPropertiesResponse.Value> responses = coolerPropertiesList;
             name = responses.get(position).item.toString();
@@ -79,8 +80,9 @@ public class Item_alert_adapter extends RecyclerView.Adapter<Item_alert_adapter.
             holder.textView2.setVisibility(View.VISIBLE);
         }
 
-        holder.textView1.setText("Code: " + code);
-        holder.textView2.setText("Name: " + name);
+        holder.textView1.setText(code);
+        holder.textView2.setText(name);
+        holder.textview3.setText(phone);
 
 
     }
@@ -114,12 +116,13 @@ public class Item_alert_adapter extends RecyclerView.Adapter<Item_alert_adapter.
 
     public class ViewHolder extends RecyclerView.ViewHolder {
 
-        TextView textView1, textView2;
+        TextView textView1, textView2, textview3;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             textView1 = itemView.findViewById(R.id.textView1);
             textView2 = itemView.findViewById(R.id.textView2);
+            textview3 = itemView.findViewById(R.id.textView3);
 
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override

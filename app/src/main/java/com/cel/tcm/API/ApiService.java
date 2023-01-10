@@ -1,6 +1,8 @@
 package com.cel.tcm.API;
 
+import com.cel.tcm.Model.CheckCoolerExistence;
 import com.cel.tcm.Model.CoolerBasicResponse;
+import com.cel.tcm.Model.CoolerExistResponse;
 import com.cel.tcm.Model.CoolerPropertiesResponse;
 import com.cel.tcm.Model.LoginPost;
 import com.cel.tcm.Model.Login_response;
@@ -78,4 +80,8 @@ public interface ApiService {
                                                        @Field("longitude") String longitude,
                                                        @Field("status") String status,
                                                        @Field("assetStatus") String assetStatus);
+
+    @POST("v2/coolerRegistration/isAssetExist")
+    Call<CoolerExistResponse> getCoolerExistence(@Header("Authorization") String authHeader,
+                                                 @Body CheckCoolerExistence checkCoolerExistence);
 }

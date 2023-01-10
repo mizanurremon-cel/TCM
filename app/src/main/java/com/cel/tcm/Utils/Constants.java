@@ -15,4 +15,5 @@ public class Constants {
     public static String BRAND = "brand";
     public static String CAPACITY = "capacity";
     public static String SHELVE = "shelve";
+    public static String COOLER_EXISTENCE = "Cooler is Already Exist";
 }

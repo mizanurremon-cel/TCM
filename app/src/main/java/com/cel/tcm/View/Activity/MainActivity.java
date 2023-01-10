@@ -61,7 +61,9 @@ import com.cel.tcm.API.APIUtilize;
 import com.cel.tcm.API.ApiService;
 import com.cel.tcm.Adapter.CoolerListAdapter;
 import com.cel.tcm.Adapter.Item_alert_adapter;
+import com.cel.tcm.Model.CheckCoolerExistence;
 import com.cel.tcm.Model.CoolerBasicResponse;
+import com.cel.tcm.Model.CoolerExistResponse;
 import com.cel.tcm.Model.CoolerPropertiesResponse;
 import com.cel.tcm.Model.OutletsResponse;
 import com.cel.tcm.Model.POSMAssetResponse;
@@ -76,9 +78,7 @@ import com.cel.tcm.Utils.GlobalActivityResult;
 import com.cel.tcm.Utils.ProgressRequestBody;
 import com.cel.tcm.Utils.ShowToast;
 
-
 import com.cel.tcm.databinding.ActivityMainBinding;
-import com.google.android.material.snackbar.Snackbar;
 import com.google.zxing.Result;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.MultiplePermissionsReport;
@@ -100,6 +100,7 @@ import java.util.Calendar;
 import java.util.Date;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 
@@ -145,6 +146,9 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
     List<RoutesResponse.Value> routesList;
     List<OutletsResponse.Value> outletsList;
     List<CoolerPropertiesResponse.Value> coolerPropertiesList;
+
+    //search
+    List<OutletsResponse.Value> searchOutletsList = new ArrayList<>();
 
     String salesPointsID, routesID, outletsID;
 
@@ -409,6 +413,7 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
         closeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                searchEditText.setText("");
                 spinnerAlert.dismiss();
             }
         });
@@ -430,36 +435,73 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
 
                 //search
                 //Toast.makeText(MainActivity.this, value, Toast.LENGTH_SHORT).show();
-                /*List<RoutesResponse.Value> searchList = new ArrayList<>();
+
 
                 if (TextUtils.isEmpty(editable)) {
-                    searchList.clear();
-                    adapter = new Item_alert_adapter(null, routesList, null, null, Constants.ROUTES);
+                    searchOutletsList.clear();
+                    adapter = new Item_alert_adapter(null, null, outletsList, null, Constants.OUTLETS);
+                    adapter.setOnAlertItemClickListener(MainActivity.this::onAlertItemClick);
                     alertItemView.setAdapter(adapter);
                 } else {
+                    searchOutletsList.clear();
                     String value = editable.toString();
-                    if (alertType.equals(Constants.ROUTES)) {
+                    if (alertType.equals(Constants.OUTLETS)) {
 
-                        for (int i = 0; i < routesList.size(); i++) {
-                            if (routesList.get(i).name.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT))) {
-                                searchList.add(routesList.get(i));
+                        HashSet<OutletsResponse.Value> setSearch = new HashSet<OutletsResponse.Value>();
+                        for (int i = 0; i < outletsList.size(); i++) {
+                            if (outletsList.get(i).name.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT)) || outletsList.get(i).contactNo.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT))) {
+
+                                setSearch.add(outletsList.get(i));
+                                //searchOutletsList.add(outletsList.get(i));
                             }
                         }
 
-                        Log.d("dataxx", String.valueOf(searchList.size()));
-                        for (int i = 0; i < searchList.size(); i++) {
-                            Log.d("dataxx", "search:: " + searchList.get(i).name);
-                        }
+                        /*Log.d("dataxx", String.valueOf(searchOutletsList.size()));
+                        for (int i = 0; i < searchOutletsList.size(); i++) {
+                            Log.d("dataxx", "search:: " + searchOutletsList.get(i).name);
+                        }*/
+                        searchOutletsList.addAll(setSearch);
 
-                        adapter = new Item_alert_adapter(null, searchList, null, null, Constants.ROUTES);
+                        adapter = new Item_alert_adapter(null, null, searchOutletsList, null, Constants.OUTLETS);
+                        adapter.setOnAlertItemClickListener(MainActivity.this::onAlertItemClick);
                         alertItemView.setAdapter(adapter);
                     }
-                }*/
+                }
 
             }
         });
 
 
+        //checkCoolerExistence();
+
+    }
+
+    private void checkCoolerExistence() {
+        String assetCode = "tel:015654656";
+        CheckCoolerExistence checkCoolerExistence = new CheckCoolerExistence();
+        checkCoolerExistence.setAssetCode(assetCode);
+
+        apiService.getCoolerExistence(bearToken, checkCoolerExistence).enqueue(new Callback<CoolerExistResponse>() {
+            @Override
+            public void onResponse(Call<CoolerExistResponse> call, Response<CoolerExistResponse> response) {
+                if (response.isSuccessful()) {
+                    //Toast.makeText(MainActivity.this, response.body().returnMessage.get(0).toString(), Toast.LENGTH_SHORT).show();
+                    if (response.body().returnMessage.size() != 0 && response.body().returnMessage.get(0).toString().equals(Constants.COOLER_EXISTENCE)) {
+                        Toast.makeText(MainActivity.this, response.body().returnMessage.get(0).toString(), Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(MainActivity.this, "not found", Toast.LENGTH_SHORT).show();
+
+                    }
+                } else {
+
+                }
+            }
+
+            @Override
+            public void onFailure(Call<CoolerExistResponse> call, Throwable t) {
+
+            }
+        });
     }
 
     private void init_view() {
@@ -600,6 +642,10 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
                 if (response.isSuccessful()) {
                     if (response.body().returnStatus == 200) {
                         ShowToast.onSuccess(getApplicationContext(), String.valueOf(response.body().returnStatus) + " " + response.body().returnMessage.get(0).toString());
+                        finish();
+                        overridePendingTransition(0, 0);
+                        startActivity(getIntent());
+                        overridePendingTransition(0, 0);
                     } else {
                         ShowToast.onError(getApplicationContext(), String.valueOf(response.body().returnStatus) + " " + response.body().returnMessage.get(0).toString());
                     }
@@ -716,11 +762,36 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
                     @Override
                     public void run() {
                         ShowToast.onSuccess(getApplicationContext(), "scan completed");
-                        extractedCode.setText(result.getText());
-                        saveButton.setEnabled(true);
-                        enableTextView(true);
-                        binding.remarksEditText.setEnabled(true);
-                        posmAssetId = "0";
+
+
+                        CheckCoolerExistence checkCoolerExistence = new CheckCoolerExistence();
+                        checkCoolerExistence.setAssetCode(result.getText());
+
+                        apiService.getCoolerExistence(bearToken, checkCoolerExistence).enqueue(new Callback<CoolerExistResponse>() {
+                            @Override
+                            public void onResponse(Call<CoolerExistResponse> call, Response<CoolerExistResponse> response) {
+                                if (response.isSuccessful()) {
+                                    //Toast.makeText(MainActivity.this, response.body().returnMessage.get(0).toString(), Toast.LENGTH_SHORT).show();
+                                    if (response.body().returnMessage.size() != 0 && response.body().returnMessage.get(0).toString().equals(Constants.COOLER_EXISTENCE)) {
+                                        Toast.makeText(MainActivity.this, response.body().returnMessage.get(0).toString(), Toast.LENGTH_SHORT).show();
+                                    } else {
+                                        Toast.makeText(MainActivity.this, "cooler not found", Toast.LENGTH_SHORT).show();
+                                        extractedCode.setText(result.getText());
+                                        saveButton.setEnabled(true);
+                                        enableTextView(true);
+                                        binding.remarksEditText.setEnabled(true);
+                                        posmAssetId = "0";
+                                    }
+                                } else {
+
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(Call<CoolerExistResponse> call, Throwable t) {
+
+                            }
+                        });
                     }
                 });
             }
@@ -752,7 +823,7 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
             public void onResponse(Call<SalesPointsResponse> call, Response<SalesPointsResponse> response) {
                 if (response.isSuccessful()) {
 
-                    if (response.body().value.size() > 0 || response.body().value != null) {
+                    if (response.body().value.size() > 0) {
                         spinnerAlert.show();
                         salesPointsList = new ArrayList<>();
                         salesPointsList = response.body().value;
@@ -811,7 +882,7 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
             public void onResponse(Call<RoutesResponse> call, Response<RoutesResponse> response) {
                 if (response.isSuccessful()) {
 
-                    if (response.body().value.size() > 0 || response.body().value != null) {
+                    if (response.body().value.size() > 0) {
                         alertType = Constants.ROUTES;
                         spinnerAlert.show();
                         routesList = new ArrayList<>();
@@ -868,7 +939,9 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
             public void onResponse(Call<OutletsResponse> call, Response<OutletsResponse> response) {
                 if (response.isSuccessful()) {
 
-                    if (response.body().value.size() > 0 || response.body().value != null) {
+                    //ShowToast.onError(getApplicationContext(), String.valueOf(response.body().value.size()));
+                    if (response.body().value.size() > 0) {
+                        alertType = Constants.OUTLETS;
                         spinnerAlert.show();
                         outletsList = new ArrayList<>();
                         outletsList = response.body().value;
@@ -1263,7 +1336,7 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
             @Override
             public void onResponse(Call<CoolerPropertiesResponse> call, Response<CoolerPropertiesResponse> response) {
                 if (response.isSuccessful()) {
-                    if (response.body().value.size() > 0 || response.body().value != null) {
+                    if (response.body().value.size() > 0) {
                         spinnerAlert.show();
                         coolerPropertiesList = new ArrayList<>();
                         coolerPropertiesList = response.body().value;
@@ -1461,19 +1534,39 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
             id = routesID;
 
         } else if (type.equals(Constants.OUTLETS)) {
-            OutletsResponse.Value response = outletsList.get(position);
-            outletsID = response.outletId.toString();
-            customerId = outletsID;
-            mhNodeId = response.mhNodeId.toString();
-            if (TextUtils.isEmpty(routesID)) {
-                //binding.outletsText.setEnabled(false);
-            } else {
-                //binding.outletsText.setEnabled(true);
-                binding.outletsText.setText(response.name);
-                get_cooler(outletsID);
-            }
 
-            id = routesID;
+            if (TextUtils.isEmpty(searchEditText.getText().toString().trim())) {
+                OutletsResponse.Value response = outletsList.get(position);
+                outletsID = response.outletId.toString();
+                customerId = outletsID;
+                mhNodeId = response.mhNodeId.toString();
+                if (TextUtils.isEmpty(routesID)) {
+                    //binding.outletsText.setEnabled(false);
+                } else {
+                    //binding.outletsText.setEnabled(true);
+                    binding.outletsText.setText(response.name);
+                    get_cooler(outletsID);
+                }
+
+                id = routesID;
+            } else {
+                OutletsResponse.Value response = searchOutletsList.get(position);
+                outletsID = response.outletId.toString();
+                customerId = outletsID;
+                mhNodeId = response.mhNodeId.toString();
+                if (TextUtils.isEmpty(routesID)) {
+                    //binding.outletsText.setEnabled(false);
+                } else {
+                    //binding.outletsText.setEnabled(true);
+                    binding.outletsText.setText(response.name);
+                    get_cooler(outletsID);
+                }
+
+                id = routesID;
+
+            }
+            searchEditText.setText("");
+            Toast.makeText(this, outletsID, Toast.LENGTH_SHORT).show();
 
         } else if (type.equals(Constants.BRAND)) {
             CoolerPropertiesResponse.Value response = coolerPropertiesList.get(position);
@@ -1490,6 +1583,8 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
         }
         spinnerAlert.dismiss();
         //Toast.makeText(this, id, Toast.LENGTH_SHORT).show();
+
+
     }
 
     @Override
