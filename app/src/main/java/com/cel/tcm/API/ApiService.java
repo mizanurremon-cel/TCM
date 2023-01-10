@@ -25,42 +25,57 @@ import retrofit2.http.Query;
 
 public interface ApiService {
 
-    @POST("users/login")
+    @POST("v1/users/login")
     Call<Login_response> userLogin(@Body LoginPost loginPost);
 
 
-    @GET("salespoints/getSalespointsByUserId")
+    @GET("v2/salespoints/getSalespointsByUserId")
     Call<SalesPointsResponse> getSalesPointByUserID(@Header("Authorization") String authHeader,
                                                     @Query("userType") String userType);
 
 
-    @GET("routes/getRoutesBySalesPointId")
+    @GET("v2/routes/getRoutesBySalesPointId")
     Call<RoutesResponse> getRoutesBySalesUserID(@Header("Authorization") String authHeader,
                                                 @Query("salespointId") String salesPointId,
                                                 @Query("status") String status);
 
-    @GET("outlets/getOutletsByRouteId")
+    @GET("v2/outlets/getOutletsByRouteId")
     Call<OutletsResponse> getOutletsByRoutesID(@Header("Authorization") String authHeader,
                                                @Query("routeId") String salesPointId,
                                                @Query("status") String status);
 
 
-    @GET("coolerRegistration/getCoolersBasic")
+    @GET("v2/coolerRegistration/getCoolersBasic")
     Call<CoolerBasicResponse> getCoolerList(@Header("Authorization") String authHeader,
                                             @Query("customerId") String customerId,
                                             @Query("status") String status,
                                             @Query("assetStatus") String assetStatus);
 
-    @GET("coolerRegistration/getCoolerProperties")
+    @GET("v2/coolerRegistration/getCoolerProperties")
     Call<CoolerPropertiesResponse> getCoolerProperties(@Header("Authorization") String authHeader,
                                                        @Query("GroupType") String GroupType);
 
 
-    @GET("coolerRegistration/getPosmAsset")
+    @GET("v2/coolerRegistration/getPosmAsset")
     Call<POSMAssetResponse> getPOSMAsset(@Header("Authorization") String authHeader,
                                          @Query("posmAssetId") String posmAssetId);
 
 
-    @POST("coolerRegistration/saveCoolerInformation")
-    Call<SaveCoolerInfoResponse> saveCoolerInformation(@Header("Authorization")String token,@Body RequestBody file);
+    @FormUrlEncoded
+    @POST("v2/coolerRegistration/saveCoolerInformationAndroid")
+    Call<SaveCoolerInfoResponse> saveCoolerInformation(@Header("Authorization") String token,
+                                                       @Field("posmAssetId") String posmAssetId,
+                                                       @Field("customerId") String customerId,
+                                                       @Field("mhNodeId") String mhNodeId,
+                                                       @Field("assetCode") String assetCode,
+                                                       @Field("assetProperty1") String assetProperty1,
+                                                       @Field("assetProperty2") String assetProperty2,
+                                                       @Field("assetProperty3") String assetProperty3,
+                                                       @Field("placementDate") String placementDate,
+                                                       @Field("picture") String picture,
+                                                       @Field("remarks") String remarks,
+                                                       @Field("latitude") String latitude,
+                                                       @Field("longitude") String longitude,
+                                                       @Field("status") String status,
+                                                       @Field("assetStatus") String assetStatus);
 }

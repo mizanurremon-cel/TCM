@@ -107,13 +107,29 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/_5sdp"
-                android:background="@drawable/shape_round_border">
+                android:background="@drawable/shape_round_border"
+                android:orientation="horizontal">
+
+
+                <TextView
+                    android:id="@+id/distributorText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="@dimen/_10sdp"
+                    android:clickable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    android:text="Select None"
+                    android:textColor="@color/black"
+                    android:textSize="@dimen/_10sdp"
+                    android:visibility="visible"
+                    tools:ignore="TouchTargetSizeCheck" />
 
 
                 <Spinner
                     android:id="@+id/distributorSpinner"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/_35sdp" />
+                    android:layout_height="@dimen/_35sdp"
+                    android:visibility="gone" />
 
             </LinearLayout>
 
@@ -130,13 +146,28 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/_5sdp"
-                android:background="@drawable/shape_round_border">
+                android:background="@drawable/shape_round_border"
+                android:orientation="vertical">
 
+                <TextView
+                    android:id="@+id/routeText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="@dimen/_10sdp"
+                    android:clickable="true"
+                    android:enabled="false"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    android:text="Select None"
+                    android:textColor="@color/black"
+                    android:textSize="@dimen/_10sdp"
+                    android:visibility="visible"
+                    tools:ignore="TouchTargetSizeCheck" />
 
                 <Spinner
                     android:id="@+id/routeSpinner"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/_35sdp" />
+                    android:layout_height="@dimen/_35sdp"
+                    android:visibility="gone" />
 
             </LinearLayout>
 
@@ -153,13 +184,28 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/_5sdp"
-                android:background="@drawable/shape_round_border">
+                android:background="@drawable/shape_round_border"
+                android:orientation="vertical">
 
+                <TextView
+                    android:id="@+id/outletsText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="@dimen/_10sdp"
+                    android:clickable="true"
+                    android:enabled="false"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    android:text="Select None"
+                    android:textColor="@color/black"
+                    android:textSize="@dimen/_10sdp"
+                    android:visibility="visible"
+                    tools:ignore="TouchTargetSizeCheck" />
 
                 <Spinner
                     android:id="@+id/outletSpinner"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/_35sdp" />
+                    android:layout_height="@dimen/_35sdp"
+                    android:visibility="gone" />
 
             </LinearLayout>
 
@@ -211,12 +257,17 @@
                     android:layout_width="wrap_content"
                     android:layout_height="@dimen/_30sdp"
                     android:layout_marginRight="@dimen/_10sdp"
-                    android:backgroundTint="@color/yellow"
+                    android:background="@drawable/shape_round"
+                    android:backgroundTint="@color/default_color"
                     android:drawableLeft="@drawable/ic_baseline_qr_code_24"
                     android:drawablePadding="@dimen/_5sdp"
+                    android:drawableTint="@color/white"
                     android:enabled="false"
+                    android:padding="@dimen/_5sdp"
                     android:text="QR Scan"
-                    android:textAllCaps="false" />
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    tools:ignore="TouchTargetSizeCheck" />
 
 
                 <TextView
@@ -242,13 +293,28 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/_5sdp"
-                android:background="@drawable/shape_round_border">
+                android:background="@drawable/shape_round_border"
+                android:orientation="vertical">
 
+                <TextView
+                    android:id="@+id/coolerBrandText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="@dimen/_10sdp"
+                    android:clickable="true"
+                    android:enabled="false"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    android:text="Select None"
+                    android:textColor="@color/black"
+                    android:textSize="@dimen/_10sdp"
+                    android:visibility="visible"
+                    tools:ignore="TouchTargetSizeCheck" />
 
                 <Spinner
                     android:id="@+id/cBrandSpinner"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/_35sdp" />
+                    android:layout_height="@dimen/_35sdp"
+                    android:visibility="gone" />
 
             </LinearLayout>
 
@@ -265,13 +331,29 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/_5sdp"
-                android:background="@drawable/shape_round_border">
+                android:background="@drawable/shape_round_border"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/coolerCapacityText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="@dimen/_10sdp"
+                    android:clickable="true"
+                    android:enabled="false"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    android:text="Select None"
+                    android:textColor="@color/black"
+                    android:textSize="@dimen/_10sdp"
+                    android:visibility="visible"
+                    tools:ignore="TouchTargetSizeCheck" />
 
 
                 <Spinner
                     android:id="@+id/cCapacitySpinner"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/_35sdp" />
+                    android:layout_height="@dimen/_35sdp"
+                    android:visibility="gone" />
 
             </LinearLayout>
 
@@ -289,13 +371,29 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/_5sdp"
-                android:background="@drawable/shape_round_border">
+                android:background="@drawable/shape_round_border"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/coolerShelveText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="@dimen/_10sdp"
+                    android:clickable="true"
+                    android:enabled="false"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    android:text="@string/select_none"
+                    android:textColor="@color/black"
+                    android:textSize="@dimen/_10sdp"
+                    android:visibility="visible"
+                    tools:ignore="TouchTargetSizeCheck" />
 
 
                 <Spinner
                     android:id="@+id/cShelveSpinner"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/_35sdp" />
+                    android:layout_height="@dimen/_35sdp"
+                    android:visibility="gone" />
 
             </LinearLayout>
 
@@ -321,7 +419,7 @@
                     android:id="@+id/dateText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:hint="dd/MM/yyyy"
+                    android:hint="@string/dateformat"
                     android:textColor="@color/black"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintLeft_toLeftOf="parent"
@@ -337,7 +435,8 @@
                     android:src="@drawable/ic_baseline_calendar_today_24"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintRight_toRightOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    app:layout_constraintTop_toTopOf="parent"
+                    tools:ignore="TouchTargetSizeCheck,SpeakableTextPresentCheck" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -354,11 +453,16 @@
                     android:layout_width="wrap_content"
                     android:layout_height="@dimen/_30sdp"
                     android:layout_marginRight="@dimen/_10sdp"
-                    android:backgroundTint="@color/yellow"
+                    android:background="@drawable/shape_round"
+                    android:backgroundTint="@color/default_color"
                     android:drawableLeft="@drawable/ic_baseline_image_24"
                     android:drawablePadding="@dimen/_5sdp"
+                    android:drawableTint="@color/white"
+                    android:padding="@dimen/_5sdp"
+                    android:text="Choose Image"
                     android:textAllCaps="false"
-                    android:text="Choose Image" />
+                    android:textColor="@color/white"
+                    tools:ignore="TouchTargetSizeCheck" />
 
                 <ImageView
                     android:id="@+id/itemImage"
@@ -396,9 +500,10 @@
                 android:id="@+id/saveButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:backgroundTint="@color/yellow"
+                android:background="@drawable/shape_round"
+                android:backgroundTint="@color/default_color"
                 android:text="Save"
-                android:textColor="@color/black"
+                android:textColor="@color/white"
                 android:textStyle="bold" />
 
 

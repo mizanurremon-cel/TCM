@@ -57,5 +57,8 @@ public class Login_response {
     @SerializedName("schemeName")
     @Expose
     public String schemeName;
+    @SerializedName("moduleIds")
+    @Expose
+    public List<String> moduleIds = null;
 
 }

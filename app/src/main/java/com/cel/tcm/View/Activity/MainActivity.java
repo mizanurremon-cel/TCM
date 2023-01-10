@@ -9,6 +9,7 @@ import androidx.appcompat.widget.AppCompatButton;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
 import android.app.AlertDialog;
@@ -26,6 +27,9 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Build;
@@ -33,7 +37,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
 import android.provider.Settings;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.Base64;
 import android.util.Log;
 import android.view.Gravity;
@@ -43,6 +49,8 @@ import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.DatePicker;
+import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -52,6 +60,7 @@ import com.budiyev.android.codescanner.DecodeCallback;
 import com.cel.tcm.API.APIUtilize;
 import com.cel.tcm.API.ApiService;
 import com.cel.tcm.Adapter.CoolerListAdapter;
+import com.cel.tcm.Adapter.Item_alert_adapter;
 import com.cel.tcm.Model.CoolerBasicResponse;
 import com.cel.tcm.Model.CoolerPropertiesResponse;
 import com.cel.tcm.Model.OutletsResponse;
@@ -66,6 +75,8 @@ import com.cel.tcm.Utils.Constants;
 import com.cel.tcm.Utils.GlobalActivityResult;
 import com.cel.tcm.Utils.ProgressRequestBody;
 import com.cel.tcm.Utils.ShowToast;
+
+
 import com.cel.tcm.databinding.ActivityMainBinding;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.zxing.Result;
@@ -77,28 +88,26 @@ import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.PermissionRequestErrorListener;
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
+
+import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class MainActivity extends AppCompatActivity implements CoolerListAdapter.OnItemClickListener, ProgressRequestBody.UploadCallbacks {
+public class MainActivity extends AppCompatActivity implements CoolerListAdapter.OnItemClickListener, Item_alert_adapter.OnAlertItemClickListener, ProgressRequestBody.UploadCallbacks, LocationListener {
 
     ActivityMainBinding binding;
     SessionManager sessionManager;
@@ -114,7 +123,7 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
     private BroadcastReceiver mNetworkReceiver;
 
     static Dialog networkErrorAlert;
-
+    static Dialog permissionAlert;
 
     private final int REQUEST_CODE_ASK_PERMISSIONS = 123;
     private String mImageCapturePath;
@@ -124,43 +133,111 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
     ProgressDialog progressDialog;
     Boolean startProgress = false;
 
-    String posmAssetId = "2055", customerId = "110740", mhNodeId = "1168", assetCode = "01-00001 - 01-08000";
+    String posmAssetId = "0", customerId, mhNodeId, assetCode;
     String assetProperty1, assetProperty2, assetProperty3;
-    String placementDate = "2022-12-14", picture, remarks = "ok", latitude = "23.74";
-    String longitude = "90.36", status = "16", assetStatus = "0";
+    String placementDate, imgString = "", remarks, latitude;
+    String longitude, status, assetStatus;
     String realPath;
+
+    Item_alert_adapter adapter;
+
+    List<SalesPointsResponse.Value> salesPointsList;
+    List<RoutesResponse.Value> routesList;
+    List<OutletsResponse.Value> outletsList;
+    List<CoolerPropertiesResponse.Value> coolerPropertiesList;
+
+    String salesPointsID, routesID, outletsID;
+
+    Dialog spinnerAlert;
+    RecyclerView alertItemView;
+    ImageView closeButton;
+    TextView titleText;
+
+    private LocationManager manager;
+    private Location AddressLocation;
+    int check = 0;
+
+    int LOCATION_REFRESH_TIME = 15000; // 15 seconds to update
+    int LOCATION_REFRESH_DISTANCE = 500; // 500 meters to update
+    private LocationManager mLocationManager;
+
+
+    EditText searchEditText;
+    String alertType;
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
 
         super.onActivityResult(requestCode, resultCode, data);
+        Log.d("dataxx", "resultcode:: " + String.valueOf(resultCode));
         if (resultCode == this.RESULT_CANCELED) {
             return;
         }
         if (requestCode == CAMERA) {
-            /*thumbnail = (Bitmap) data.getExtras().get("data");
-            mImageCaptureUri = data.getData();
-            binding.itemImage.setImageBitmap(thumbnail);
-            //saveImage(thumbnail);
-            Toast.makeText(getApplicationContext(), "Image Saved!", Toast.LENGTH_SHORT).show();*/
+
             Bitmap photo = (Bitmap) data.getExtras().get("data");
             binding.itemImage.setImageBitmap(photo);
-            //knop.setVisibility(Button.VISIBLE);
-
-
-            // CALL THIS METHOD TO GET THE URI FROM THE BITMAP
             Uri tempUri = getImageUri(getApplicationContext(), photo);
 
-            // CALL THIS METHOD TO GET THE ACTUAL PATH
-            //File finalFile = new File(getRealPathFromURI(tempUri));
-
-
             realPath = getRealPathFromURI(tempUri);
-            //Log.d("dataxx", "path:: " + realPath);
-            //save_data_to_server(realPath);
 
+            imgString = imageToString(photo);
+            Log.d("gataxx", "image:: " + imgString);
+
+        } else if (requestCode == 12) {
+            Log.e("GPS 11", "Called");
+            if (resultCode == RESULT_OK) {
+                LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+                if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                    Log.e("GPS 1", "Called");
+                    //GPS Permission not Granted
+
+                } else {
+                    Log.e("GPS 2", "Called");
+                    //GPS Permission Granted
+                    checkLocationPermission();
+                }
+            } else {
+                Log.e("GPS 22", "Called");
+                //GPS Permission Granted
+                checkLocationPermission();
+            }
         }
     }
+
+    /*@Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        Log.e("GPS 12", "Called" + requestCode);
+        switch (requestCode) {
+            case 12:
+                Log.e("GPS 11", "Called");
+                if (resultCode == RESULT_OK) {
+                    LocationManager manager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+                    if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                        Log.e("GPS 1", "Called");
+                        //GPS Permission not Granted
+
+                    } else {
+                        Log.e("GPS 2", "Called");
+                        //GPS Permission Granted
+                        checkLocationPermission();
+                    }
+                } else {
+                    Log.e("GPS 22", "Called");
+                    //GPS Permission Granted
+                    checkLocationPermission();
+                }
+
+
+                break;
+            case 101:
+                checkPermission();
+                break;
+        }
+
+
+    }*/
 
 
     public Uri getImageUri(Context inContext, Bitmap inImage) {
@@ -206,6 +283,7 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
         setContentView(view);
         init_view();
 
+        //requestMultiplePermissions();
 
         binding.logOutButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -229,21 +307,18 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
             public void onClick(View view) {
                 //Toast.makeText(MainActivity.this, "qr", Toast.LENGTH_SHORT).show();
                 if (!TextUtils.isEmpty(binding.qrCodeText.getText().toString().trim())) {
-                    get_cooler_brand("1", 0, "");
-                    get_cooler_capacity("2", 0, "");
-                    get_cooler_shelve("3", 0, "");
+                    //get_cooler_brand("1");
+                    //get_cooler_capacity("2");
+                    //get_cooler_shelve("3");
 
+
+                    disableTextViews(false);
                 }
 
                 qr_code_fun();
             }
         });
 
-
-        //Toast.makeText(this, userID+" "+userType, Toast.LENGTH_SHORT).show();
-        //Log.d("dataxx", userID + " " + userType + " " + bearToken);
-
-        getSalesPoints();
 
         if (!checkStoragePermission()) {
             try {
@@ -259,14 +334,7 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
                 int hasStoragePermission = ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE);
 
                 if (hasStoragePermission != PackageManager.PERMISSION_GRANTED) {
-                   /* if (!ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                        Snackbar.make(binding.imageChooseButton, R.string.prompt_permission_storage, Snackbar.LENGTH_INDEFINITE)
-                                .setAction(R.string.action_settings, view1 -> showPermissionsSettings())
-                                .show();
-                        return;
-                    }
-                    ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CODE_ASK_PERMISSIONS);
-                */
+
                     openSettingsDialog();
                 } else {
                     showPictureDialog();
@@ -279,21 +347,222 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
             @Override
             public void onClick(View view) {
 
+                //Toast.makeText(MainActivity.this, "click", Toast.LENGTH_SHORT).show();
                 //Log.d("dataxx")
-                save_data_to_server(realPath);
+                save_data_to_server();
             }
         });
 
         mNetworkReceiver = new NetworkChangeReceiver();
         registerNetworkBroadcastForNougat();
 
+
+        binding.distributorText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                titleText.setText("Distributor List");
+                getSalesPoints();
+
+            }
+        });
+
+
+        binding.routeText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                titleText.setText("Routes List");
+                get_routes(salesPointsID);
+            }
+        });
+
+        binding.outletsText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                titleText.setText("Outlets List");
+                get_outlet(routesID);
+            }
+        });
+
+
+        binding.coolerBrandText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                get_cooler_properties("1", Constants.BRAND);
+            }
+        });
+
+        binding.coolerCapacityText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                get_cooler_properties("2", Constants.CAPACITY);
+            }
+        });
+
+        binding.coolerShelveText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                get_cooler_properties("3", Constants.SHELVE);
+            }
+        });
+
+
+        closeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                spinnerAlert.dismiss();
+            }
+        });
+
+
+        searchEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+
+                //search
+                //Toast.makeText(MainActivity.this, value, Toast.LENGTH_SHORT).show();
+                /*List<RoutesResponse.Value> searchList = new ArrayList<>();
+
+                if (TextUtils.isEmpty(editable)) {
+                    searchList.clear();
+                    adapter = new Item_alert_adapter(null, routesList, null, null, Constants.ROUTES);
+                    alertItemView.setAdapter(adapter);
+                } else {
+                    String value = editable.toString();
+                    if (alertType.equals(Constants.ROUTES)) {
+
+                        for (int i = 0; i < routesList.size(); i++) {
+                            if (routesList.get(i).name.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT))) {
+                                searchList.add(routesList.get(i));
+                            }
+                        }
+
+                        Log.d("dataxx", String.valueOf(searchList.size()));
+                        for (int i = 0; i < searchList.size(); i++) {
+                            Log.d("dataxx", "search:: " + searchList.get(i).name);
+                        }
+
+                        adapter = new Item_alert_adapter(null, searchList, null, null, Constants.ROUTES);
+                        alertItemView.setAdapter(adapter);
+                    }
+                }*/
+
+            }
+        });
+
+
     }
 
-    private void save_data_to_server(String imagePath) {
+    private void init_view() {
+        apiService = APIUtilize.apiService();
+        sessionManager = new SessionManager(getApplicationContext());
+        userID = sessionManager.getUserID().toString();
+        userType = sessionManager.getUserType();
+        bearToken = "Bearer " + sessionManager.getToken().replace("\n", "").trim();
 
-        Log.d("dataxx", "req data:: " + posmAssetId + " " + customerId + " " + mhNodeId + " " + assetCode + " " + assetProperty1 + " " + assetProperty2 + " " + assetProperty3 + " " + placementDate + " " + latitude + " " + longitude + " " + status + " " + assetStatus + " " + imagePath);
+        binding.itemView.setHasFixedSize(true);
+        binding.itemView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
 
-        MultipartBody.Builder builder = new MultipartBody.Builder();
+        networkErrorAlert = new Dialog(MainActivity.this);
+        networkErrorAlert.setContentView(R.layout.network_alert);
+        networkErrorAlert.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        networkErrorAlert.setCancelable(false);
+
+        Window window = networkErrorAlert.getWindow();
+        WindowManager.LayoutParams wlp = window.getAttributes();
+        wlp.gravity = Gravity.CENTER;
+        wlp.width = android.view.WindowManager.LayoutParams.MATCH_PARENT;
+        wlp.height = android.view.WindowManager.LayoutParams.WRAP_CONTENT;
+        window.setAttributes(wlp);
+
+
+        //networkErrorAlert.getWindow().setLayout(WindowManager.LayoutParams.MATCH_PARENT,WindowManager.LayoutParams.WRAP_CONTENT);
+
+        spinnerAlert = new Dialog(MainActivity.this);
+        spinnerAlert.setContentView(R.layout.item_alert);
+        spinnerAlert.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        spinnerAlert.setCancelable(false);
+
+        Window window2 = spinnerAlert.getWindow();
+        WindowManager.LayoutParams wlp2 = window2.getAttributes();
+        wlp2.gravity = Gravity.CENTER;
+        wlp2.width = android.view.WindowManager.LayoutParams.MATCH_PARENT;
+        wlp2.height = android.view.WindowManager.LayoutParams.WRAP_CONTENT;
+        window.setAttributes(wlp2);
+
+        alertItemView = spinnerAlert.findViewById(R.id.alertItemView);
+        alertItemView.setHasFixedSize(true);
+        alertItemView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
+        closeButton = spinnerAlert.findViewById(R.id.closeButton);
+
+        titleText = spinnerAlert.findViewById(R.id.titleText);
+        searchEditText = spinnerAlert.findViewById(R.id.searchEditText);
+
+        status = String.valueOf(Constants.AUTH_STATUS);
+        assetStatus = String.valueOf(Constants.ASSET_STATUS);
+
+
+        permissionAlert = new Dialog(MainActivity.this);
+        permissionAlert.setContentView(R.layout.grant_permission_alert);
+        permissionAlert.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        permissionAlert.setCancelable(false);
+
+        Window window3 = permissionAlert.getWindow();
+        WindowManager.LayoutParams wlp3 = window3.getAttributes();
+        wlp3.gravity = Gravity.CENTER;
+        wlp3.width = android.view.WindowManager.LayoutParams.MATCH_PARENT;
+        wlp3.height = android.view.WindowManager.LayoutParams.WRAP_CONTENT;
+        window.setAttributes(wlp3);
+    }
+
+    private void save_data_to_server() {
+        //Toast.makeText(MainActivity.this, "click", Toast.LENGTH_SHORT).show();
+        assetProperty1 = binding.coolerBrandText.getText().toString().trim();
+        assetProperty2 = binding.coolerCapacityText.getText().toString().trim();
+        assetProperty3 = binding.coolerShelveText.getText().toString().trim();
+        assetCode = binding.qrCodeText.getText().toString().trim();
+        placementDate = binding.dateText.getText().toString().trim();
+        status = Constants.AUTH_STATUS;
+        assetStatus = Constants.ASSET_STATUS;
+        remarks = binding.remarksEditText.getText().toString().trim();
+        //latitude = "20.36";
+        //longitude = "90.36";
+
+//        Log.d("dataxx", "req data:: " + bearToken + " posmAssetId: " +
+//                posmAssetId + "  " + customerId + " " + mhNodeId + " " + assetCode + " " + assetProperty1 + " " +
+//                assetProperty2 + " " + assetProperty3 + " " + placementDate + " " + latitude + " " + longitude + " " + status + " " + assetStatus + " " + remarks);
+//        Log.d("dataxx", "image" + imgString);
+
+        HashMap<String, String> body = new HashMap<>();
+        body.put("bearToken", bearToken);
+        body.put("posmID", posmAssetId);
+        body.put("customerId", customerId);
+        body.put("mhNodeId", mhNodeId);
+        body.put("assetCode", assetCode);
+        body.put("assetProperty1", assetProperty1);
+        body.put("assetProperty2", assetProperty2);
+        body.put("assetProperty3", assetProperty3);
+        body.put("placementDate", placementDate);
+        body.put("latitude", latitude);
+        body.put("longitude", longitude);
+        body.put("status", status);
+        body.put("assetStatus", assetStatus);
+        body.put("remarks", remarks);
+        //body.put("imgString", imgString);
+
+        Log.d("serverDataxx", body.toString());
+        Log.d("serverDataxx", "image" + imgString);
+
+        /*MultipartBody.Builder builder = new MultipartBody.Builder();
         builder.setType(MultipartBody.FORM);
         builder.addFormDataPart("posmAssetId", posmAssetId);
         builder.addFormDataPart("customerId", customerId);
@@ -303,52 +572,75 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
         builder.addFormDataPart("assetProperty2", assetProperty2);
         builder.addFormDataPart("assetProperty3", assetProperty3);
         builder.addFormDataPart("placementDate", placementDate);
+        builder.addFormDataPart("remarks", remarks);
         builder.addFormDataPart("latitude", latitude);
         builder.addFormDataPart("longitude", longitude);
         builder.addFormDataPart("status", status);
         builder.addFormDataPart("assetStatus", assetStatus);
         File mFile1 = new File(imagePath);
 
+        // RequestBody reqFile = RequestBody.create(okhttp3.MediaType.parse("image/*"), mFile1);
+        //builder.addFormDataPart("picture", mFile1.getName(), RequestBody.create(MediaType.parse("image/*"), mFile1));
+
+        //Log.d("dataxx", "fileName:: "+mFile1.getName());
         ProgressRequestBody fileBody1 = new ProgressRequestBody(mFile1, "multipart/form-data", this);
         builder.addFormDataPart("picture", mFile1.getName(), fileBody1);
 
         progressDialog = new ProgressDialog(this);
         startProgress = true;
 
-        MultipartBody requestBody = builder.build();
+        MultipartBody requestBody = builder.build();*/
 
-        apiService.saveCoolerInformation(bearToken, requestBody).enqueue(new Callback<SaveCoolerInfoResponse>() {
+        apiService.saveCoolerInformation(bearToken, posmAssetId, customerId, mhNodeId, assetCode, assetProperty1, assetProperty2, assetProperty3, placementDate, imgString, remarks, latitude, longitude, status, assetStatus).enqueue(new Callback<SaveCoolerInfoResponse>() {
             @Override
             public void onResponse(Call<SaveCoolerInfoResponse> call, Response<SaveCoolerInfoResponse> response) {
-                startProgress = true;
-                if (response.isSuccessful()) {
-                    ShowToast.onSuccess(getApplicationContext(), "success");
-                } else {
-                    //Log.d("dataxx", "s error: " + response.toString());
+                //Log.d("dataxx", response.body().returnMessage.get(0).toString());
+                //startProgress = true;
 
-                    String message=response.errorBody().toString();
+                if (response.isSuccessful()) {
+                    if (response.body().returnStatus == 200) {
+                        ShowToast.onSuccess(getApplicationContext(), String.valueOf(response.body().returnStatus) + " " + response.body().returnMessage.get(0).toString());
+                    } else {
+                        ShowToast.onError(getApplicationContext(), String.valueOf(response.body().returnStatus) + " " + response.body().returnMessage.get(0).toString());
+                    }
+                } else {
 
                     try {
-                        JSONObject jobj = new JSONObject(message);
-                        Log.d("data","s error  "+jobj.toString());
+                        JSONObject jObjError = new JSONObject(response.errorBody().string());
+                        ShowToast.onError(getApplicationContext(), jObjError.getString("returnMessage").toString());
+                        /*if (jObjError.getString("returnMessage").equals("403")) {
+                            ShowToast.onError(getApplicationContext(), "you need to login again");
+                            startActivity(new Intent(getApplicationContext(), Login_activity.class));
+                            finish();
+                        }*/
+                    } catch (Exception e) {
 
+                        Log.d("dataxx", "exception:: " + e.getMessage());
+                        ShowToast.onError(getApplicationContext(), getString(R.string.something).toString());
+                    }
 
-                    }
-                    catch (Exception e1) {
-                        Log.d("data","s error  r"+e1.getMessage());
-                    }
                 }
             }
 
             @Override
             public void onFailure(Call<SaveCoolerInfoResponse> call, Throwable t) {
-                startProgress = true;
+                // startProgress = true;
                 Log.d("dataxx", "f error: " + t.toString());
             }
         });
 
     }
 
+    public String imageToString(Bitmap bitmap) {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+        byte[] byteFormat = stream.toByteArray();
+
+        // Get the Base64 string
+        String imgString = Base64.encodeToString(byteFormat, Base64.NO_WRAP);
+
+        return imgString;
+    }
 
     private void showPermissionsSettings() {
         final Intent i = new Intent();
@@ -426,6 +718,9 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
                         ShowToast.onSuccess(getApplicationContext(), "scan completed");
                         extractedCode.setText(result.getText());
                         saveButton.setEnabled(true);
+                        enableTextView(true);
+                        binding.remarksEditText.setEnabled(true);
+                        posmAssetId = "0";
                     }
                 });
             }
@@ -443,6 +738,7 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
                 binding.qrCodeText.setText(extractedCode.getText().toString().trim());
                 mCodeScanner.releaseResources();
                 qrCodeDialog.dismiss();
+
             }
         });
     }
@@ -456,8 +752,19 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
             public void onResponse(Call<SalesPointsResponse> call, Response<SalesPointsResponse> response) {
                 if (response.isSuccessful()) {
 
-                    //Log.d("dataxx", "successs");
-                    List<String> itemList = new ArrayList<>();
+                    if (response.body().value.size() > 0 || response.body().value != null) {
+                        spinnerAlert.show();
+                        salesPointsList = new ArrayList<>();
+                        salesPointsList = response.body().value;
+                        adapter = new Item_alert_adapter(salesPointsList, null, null, null, Constants.SALES);
+                        adapter.setOnAlertItemClickListener(MainActivity.this::onAlertItemClick);
+                        alertItemView.setAdapter(adapter);
+                    } else {
+                        ShowToast.onError(getApplicationContext(), "No item found");
+                    }
+
+
+                    /*List<String> itemList = new ArrayList<>();
                     itemList.add("Select Distributor");
                     for (int i = 0; i < response.body().value.size(); i++) {
                         itemList.add(response.body().value.get(i).salesPointName);
@@ -473,7 +780,9 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
                             int pos = adapterView.getSelectedItemPosition();
                             //Toast.makeText(MainActivity.this, String.valueOf(pos), Toast.LENGTH_SHORT).show();
                             if (pos > 0) {
+                                //posmAssetId = response.body().value.get(pos-1).salesPointId.toString()
                                 String salesPointID = response.body().value.get(pos - 1).salesPointId.toString();
+                                //posmAssetId = salesPointID;
                                 get_routes(salesPointID);
                             }
                         }
@@ -482,7 +791,7 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
                         public void onNothingSelected(AdapterView<?> adapterView) {
 
                         }
-                    });
+                    });*/
                 } else {
                     Log.d("dataxx", "error" + response.errorBody().toString());
                 }
@@ -502,8 +811,19 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
             public void onResponse(Call<RoutesResponse> call, Response<RoutesResponse> response) {
                 if (response.isSuccessful()) {
 
+                    if (response.body().value.size() > 0 || response.body().value != null) {
+                        alertType = Constants.ROUTES;
+                        spinnerAlert.show();
+                        routesList = new ArrayList<>();
+                        routesList = response.body().value;
+                        adapter = new Item_alert_adapter(null, routesList, null, null, Constants.ROUTES);
+                        adapter.setOnAlertItemClickListener(MainActivity.this::onAlertItemClick);
+                        alertItemView.setAdapter(adapter);
+                    } else {
+                        ShowToast.onError(getApplicationContext(), "No item found");
+                    }
                     //Log.d("dataxx", "successs");
-                    List<String> itemList = new ArrayList<>();
+                    /*List<String> itemList = new ArrayList<>();
                     itemList.add("Select Route");
                     for (int i = 0; i < response.body().value.size(); i++) {
                         itemList.add(response.body().value.get(i).name);
@@ -528,7 +848,7 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
                         public void onNothingSelected(AdapterView<?> adapterView) {
 
                         }
-                    });
+                    });*/
                 } else {
                     Log.d("dataxx", "error" + response.errorBody().toString());
                 }
@@ -548,8 +868,19 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
             public void onResponse(Call<OutletsResponse> call, Response<OutletsResponse> response) {
                 if (response.isSuccessful()) {
 
+                    if (response.body().value.size() > 0 || response.body().value != null) {
+                        spinnerAlert.show();
+                        outletsList = new ArrayList<>();
+                        outletsList = response.body().value;
+                        adapter = new Item_alert_adapter(null, null, outletsList, null, Constants.OUTLETS);
+                        adapter.setOnAlertItemClickListener(MainActivity.this::onAlertItemClick);
+                        alertItemView.setAdapter(adapter);
+                    } else {
+                        ShowToast.onError(getApplicationContext(), "No item found");
+                    }
+
                     //Log.d("dataxx", "successs");
-                    List<String> itemList = new ArrayList<>();
+                    /*List<String> itemList = new ArrayList<>();
                     itemList.add("Select Outlet");
                     for (int i = 0; i < response.body().value.size(); i++) {
                         itemList.add(response.body().value.get(i).name);
@@ -574,7 +905,7 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
                         public void onNothingSelected(AdapterView<?> adapterView) {
 
                         }
-                    });
+                    });*/
                 } else {
                     Log.d("dataxx", "error" + response.errorBody().toString());
                 }
@@ -604,8 +935,13 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
                         coolerListAdapter = new CoolerListAdapter(coolerList);
                         coolerListAdapter.setOnItemClickListener(MainActivity.this::onItemClick);
                         binding.itemView.setAdapter(coolerListAdapter);
+                        enableTextView(true);
+
                     } else {
                         binding.noDataFound.setVisibility(View.VISIBLE);
+                        binding.itemView.setVisibility(View.GONE);
+
+                        disableTextViews(false);
                     }
 
                 } else {
@@ -618,6 +954,26 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
                 Log.d("dataxx", "error" + t.getMessage());
             }
         });
+    }
+
+    private void enableTextView(boolean state) {
+        binding.coolerBrandText.setEnabled(state);
+        binding.coolerCapacityText.setEnabled(state);
+        binding.coolerShelveText.setEnabled(state);
+    }
+
+    public void disableTextViews(boolean state) {
+        binding.coolerBrandText.setText(getString(R.string.select_none));
+        binding.coolerCapacityText.setText(getString(R.string.select_none));
+        binding.coolerShelveText.setText(getString(R.string.select_none));
+        binding.qrCodeText.setText("");
+
+        binding.coolerBrandText.setEnabled(state);
+        binding.coolerCapacityText.setEnabled(state);
+        binding.coolerShelveText.setEnabled(state);
+
+        binding.dateText.setText("");
+        binding.dateText.setHint(getString(R.string.dateformat));
     }
 
     private void pickDateFun() {
@@ -670,44 +1026,20 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
         }
     }
 
-    private void init_view() {
-        apiService = APIUtilize.apiService();
-        sessionManager = new SessionManager(getApplicationContext());
-        userID = sessionManager.getUserID().toString();
-        userType = sessionManager.getUserType();
-        bearToken = "Bearer " + sessionManager.getToken().replace("\n", "").trim();
-
-        binding.itemView.setHasFixedSize(true);
-        binding.itemView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
-
-        networkErrorAlert = new Dialog(MainActivity.this);
-        networkErrorAlert.setContentView(R.layout.network_alert);
-        networkErrorAlert.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        networkErrorAlert.setCancelable(false);
-
-        Window window = networkErrorAlert.getWindow();
-        WindowManager.LayoutParams wlp = window.getAttributes();
-        wlp.gravity = Gravity.CENTER;
-        wlp.width = android.view.WindowManager.LayoutParams.MATCH_PARENT;
-        wlp.height = android.view.WindowManager.LayoutParams.WRAP_CONTENT;
-        window.setAttributes(wlp);
-
-
-        requestMultiplePermissions();
-        //networkErrorAlert.getWindow().setLayout(WindowManager.LayoutParams.MATCH_PARENT,WindowManager.LayoutParams.WRAP_CONTENT);
-
-
-    }
-
     @Override
     public void onItemClick(int position) {
+
         //Toast.makeText(this, coolerList.get(position).assetCode.toString(), Toast.LENGTH_SHORT).show();
         binding.qrCodeText.setText(coolerList.get(position).assetCode.toString());
-        get_cooler_brand("1", 0, coolerList.get(position).assetProperty1);
-        get_cooler_capacity("2", 0, coolerList.get(position).assetProperty2);
-        get_cooler_shelve("3", 0, coolerList.get(position).assetProperty3);
+        //get_cooler_capacity("2", 0, coolerList.get(position).assetProperty2);
+        //get_cooler_shelve("3", 0, coolerList.get(position).assetProperty3);
 
-        get_POSM_asset(coolerList.get(position).posmAssetId.toString());
+        binding.coolerBrandText.setText(coolerList.get(position).assetProperty1);
+        binding.coolerCapacityText.setText(coolerList.get(position).assetProperty2);
+        binding.coolerShelveText.setText(coolerList.get(position).assetProperty3);
+
+        posmAssetId = coolerList.get(position).posmAssetId.toString();
+        get_POSM_asset(posmAssetId);
 
     }
 
@@ -717,14 +1049,6 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
             @Override
             public void onResponse(Call<POSMAssetResponse> call, Response<POSMAssetResponse> response) {
                 if (response.isSuccessful()) {
-                    /*SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-                    try {
-                        Date date = inputFormat.parse(response.body().placementDate);
-
-                        binding.dateText.setText(changeDateFormat(date));
-                    } catch (Exception e) {
-                        Log.d("dataxx", "date error "+e.getMessage());
-                    }*/
 
                     SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
                     SimpleDateFormat outputFormat = new SimpleDateFormat("dd/MM/yyyy");
@@ -742,6 +1066,7 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
                     binding.remarksEditText.setEnabled(true);
                     binding.remarksEditText.setText(response.body().remarks);
 
+                    imgString = response.body().picture;
                     binding.itemImage.setImageBitmap(StringToBitMap(response.body().picture));
 
                 } else {
@@ -933,6 +1258,34 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
         });
     }
 
+    public void get_cooler_properties(String groupType, String type) {
+        apiService.getCoolerProperties(bearToken, groupType).enqueue(new Callback<CoolerPropertiesResponse>() {
+            @Override
+            public void onResponse(Call<CoolerPropertiesResponse> call, Response<CoolerPropertiesResponse> response) {
+                if (response.isSuccessful()) {
+                    if (response.body().value.size() > 0 || response.body().value != null) {
+                        spinnerAlert.show();
+                        coolerPropertiesList = new ArrayList<>();
+                        coolerPropertiesList = response.body().value;
+                        adapter = new Item_alert_adapter(null, null, null, coolerPropertiesList, type);
+                        adapter.setOnAlertItemClickListener(MainActivity.this::onAlertItemClick);
+                        alertItemView.setAdapter(adapter);
+                    } else {
+                        ShowToast.onError(getApplicationContext(), "No item found");
+                    }
+                } else {
+
+                }
+            }
+
+            @Override
+            public void onFailure(Call<CoolerPropertiesResponse> call, Throwable t) {
+
+            }
+        });
+
+    }
+
     public Bitmap StringToBitMap(String encodedString) {
         try {
             byte[] encodeByte = Base64.decode(encodedString, Base64.DEFAULT);
@@ -950,28 +1303,37 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
         unregisterNetworkChanges();
     }
 
-
     private void requestMultiplePermissions() {
         Dexter.withActivity(this)
                 .withPermissions(
                         Manifest.permission.CAMERA,
+                        //Manifest.permission.ACCESS_FINE_LOCATION,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                        Manifest.permission.READ_EXTERNAL_STORAGE)
+                        Manifest.permission.READ_EXTERNAL_STORAGE
+                        /*Manifest.permission.ACCESS_COARSE_LOCATION*/
+                )
                 .withListener(new MultiplePermissionsListener() {
                     @Override
                     public void onPermissionsChecked(MultiplePermissionsReport report) {
+                        for (int i = 0; i < report.getDeniedPermissionResponses().size(); i++) {
+                            Log.d("dataxx", "permission:: " + report.getGrantedPermissionResponses().get(i).getPermissionName().toString());
+
+                        }
                         if (report.areAllPermissionsGranted()) {  // check if all permissions are granted
                             Toast.makeText(getApplicationContext(), "All permissions are granted by user!", Toast.LENGTH_SHORT).show();
-                        }
-
-                        if (report.isAnyPermissionPermanentlyDenied()) { // check for permanent denial of any permission
-                            // show alert dialog navigating to Settings
+                        } else {
+                            //Toast.makeText(getApplicationContext(), "sorry2", Toast.LENGTH_SHORT).show();
                             openSettingsDialog();
-                            //Toast.makeText(getApplicationContext(), "sorry", Toast.LENGTH_SHORT).show();
-
-                            //requestMultiplePermissions();
-
                         }
+
+                        /*if (report.isAnyPermissionPermanentlyDenied()) { // check for permanent denial of any permission
+                            // show alert dialog navigating to Settings
+
+                            Toast.makeText(getApplicationContext(), "sorry", Toast.LENGTH_SHORT).show();
+
+                            //openSettingsDialog();
+
+                        }*/
                     }
 
                     @Override
@@ -989,18 +1351,25 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
                 .check();
     }
 
-    private void openSettingsDialog() {
 
+    private void openSettingsDialog() {
+        permissionAlert.dismiss();
         if (!ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-            Snackbar.make(binding.imageChooseButton, R.string.prompt_permission_storage, Snackbar.LENGTH_INDEFINITE)
-                    .setAction(R.string.action_settings, view1 -> showPermissionsSettings())
-                    .show();
+
+            permissionAlert.show();
+            TextView goToSettingButton = permissionAlert.findViewById(R.id.goToSettingButton);
+            goToSettingButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+                    showPermissionsSettings();
+                }
+            });
             return;
         }
         ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CODE_ASK_PERMISSIONS);
 
     }
-
 
     @Override
     public void onProgressUpdate(int percentage) {
@@ -1011,7 +1380,7 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
         progressDialog.setCancelable(false);
         progressDialog.setMax(100);
         progressDialog.setProgress(percentage);
-        progressDialog.show();
+        //progressDialog.show();
     }
 
     @Override
@@ -1062,4 +1431,136 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
             e.printStackTrace();
         }
     }
+
+    @Override
+    public void onAlertItemClick(int position, String type) {
+
+        String id = "";
+        if (type.equals(Constants.SALES)) {
+            SalesPointsResponse.Value response = salesPointsList.get(position);
+            salesPointsID = response.salesPointId.toString();
+            if (TextUtils.isEmpty(salesPointsID)) {
+                binding.routeText.setEnabled(false);
+            } else {
+                binding.routeText.setEnabled(true);
+                binding.distributorText.setText(response.salesPointName);
+            }
+            id = salesPointsID;
+
+        } else if (type.equals(Constants.ROUTES)) {
+            RoutesResponse.Value response = routesList.get(position);
+            routesID = response.routeId.toString();
+
+            if (TextUtils.isEmpty(routesID)) {
+                binding.outletsText.setEnabled(false);
+            } else {
+                binding.outletsText.setEnabled(true);
+                binding.routeText.setText(response.name);
+            }
+
+            id = routesID;
+
+        } else if (type.equals(Constants.OUTLETS)) {
+            OutletsResponse.Value response = outletsList.get(position);
+            outletsID = response.outletId.toString();
+            customerId = outletsID;
+            mhNodeId = response.mhNodeId.toString();
+            if (TextUtils.isEmpty(routesID)) {
+                //binding.outletsText.setEnabled(false);
+            } else {
+                //binding.outletsText.setEnabled(true);
+                binding.outletsText.setText(response.name);
+                get_cooler(outletsID);
+            }
+
+            id = routesID;
+
+        } else if (type.equals(Constants.BRAND)) {
+            CoolerPropertiesResponse.Value response = coolerPropertiesList.get(position);
+            binding.coolerBrandText.setText(response.item);
+            id = response.item;
+        } else if (type.equals(Constants.CAPACITY)) {
+            CoolerPropertiesResponse.Value response = coolerPropertiesList.get(position);
+            binding.coolerCapacityText.setText(response.item);
+            id = response.item;
+        } else if (type.equals(Constants.SHELVE)) {
+            CoolerPropertiesResponse.Value response = coolerPropertiesList.get(position);
+            binding.coolerShelveText.setText(response.item);
+            id = response.item;
+        }
+        spinnerAlert.dismiss();
+        //Toast.makeText(this, id, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        checkLocationPermission();
+        requestMultiplePermissions();
+    }
+
+    private void checkLocationPermission() {
+        Log.d("checkPermission", "Check");
+        manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            buildAlertMessageNoGps();
+        }
+        if (ActivityCompat.checkSelfPermission(this,
+                android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.d("checkPermission", "Not granted");
+            openSettingsDialog();
+            return;
+        }
+        Log.d("checkPermission", "Granted");
+        manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 60000, (LocationListener) this);
+        manager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 60000, (LocationListener) this);
+
+    }
+
+    private void buildAlertMessageNoGps() {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("Your GPS seems to be disabled, do you want to enable it?")
+                .setCancelable(false)
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    public void onClick(final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        dialog.cancel();
+                    }
+                });
+        final AlertDialog alert = builder.create();
+        alert.show();
+    }
+
+    @Override
+    public void onLocationChanged(@NonNull Location location) {
+        Log.d("onLocationChanged", "Called" + String.valueOf(location.getLatitude()));
+        //CustomProgressDialog.showDialog(getActivity(), false);
+        manager.removeUpdates((LocationListener) this);
+        AddressLocation = location;
+        setLocation();
+
+        //Log.d("testLocation", " lat: " + String.valueOf(AddressLocation.getLatitude()) + " lang " + String.valueOf(AddressLocation.getLongitude()));
+    }
+
+    private void setLocation() {
+        latitude = String.valueOf(new DecimalFormat("##.#####").format(AddressLocation.getLatitude()));
+        longitude = String.valueOf(new DecimalFormat("##.#####").format(AddressLocation.getLongitude()));
+
+        Log.d("dataxx", "lat: " + latitude + " long: " + longitude);
+    }
+
+
+//    private final LocationListener mLocationListener = new LocationListener() {
+//        @Override
+//        public void onLocationChanged(final Location location) {
+//            //your code here
+//            Log.d("locationxx", "location:"+"lat: "+String.valueOf(location.getLatitude())+"long: "+String.valueOf(location.getLatitude()));
+//        }
+//    };
 }

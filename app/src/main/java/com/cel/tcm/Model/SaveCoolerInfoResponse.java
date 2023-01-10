@@ -12,7 +12,9 @@ public class SaveCoolerInfoResponse {
     @SerializedName("returnStatus")
     @Expose
     public Integer returnStatus;
+
     @SerializedName("returnMessage")
     @Expose
     public List<String> returnMessage = null;
+
 }

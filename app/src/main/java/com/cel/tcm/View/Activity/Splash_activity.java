@@ -54,8 +54,18 @@ public class Splash_activity extends AppCompatActivity {
             }, SPLASH_DISPLAY_LENGTH);
 
         } else {
-            startActivity(new Intent(getApplicationContext(), MainActivity.class));
-            finish();
+
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+
+                    startActivity(new Intent(getApplicationContext(), MainActivity.class));
+                    finish();
+
+
+                }
+            }, SPLASH_DISPLAY_LENGTH);
+
         }
 
         if (!checkStoragePermission()) {
