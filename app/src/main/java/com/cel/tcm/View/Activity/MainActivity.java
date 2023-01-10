@@ -449,7 +449,7 @@ public class MainActivity extends AppCompatActivity implements CoolerListAdapter
 
                         HashSet<OutletsResponse.Value> setSearch = new HashSet<OutletsResponse.Value>();
                         for (int i = 0; i < outletsList.size(); i++) {
-                            if (outletsList.get(i).name.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT)) || outletsList.get(i).contactNo.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT))) {
+                            if (outletsList.get(i).name.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT)) || outletsList.get(i).contactNo.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT)) || outletsList.get(i).code.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT))) {
 
                                 setSearch.add(outletsList.get(i));
                                 //searchOutletsList.add(outletsList.get(i));
